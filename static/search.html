@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=DotGothic16&family=Pixelify+Sans:wght@400..700&family=Rubik&family=Space+Grotesk:wght@400;700&display=swap");
+@font-face {
+    font-family: "Cozette";
+    src: url(https://dms.ontake.dev/assets/fonts/CozetteVector.woff2);
+}
+
+:root {
+    --text-color: #664e64;
+    --text-color-accent: #793a73;
+
+    --bg-color: #ffffff;
+    --bg-sec-color: #f0d8e3;
+
+    color: var(--text-color);
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: none;
+    font-smoothing: none;
+
+    scrollbar-color: var(--text-color-accent) var(--bg-sec-color);
+    scrollbar-width: thin;
+}
+
+body {
+    margin: 8px;
+    position: relative;
+    font-family: "Cozette", "DotGothic16", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    background-color: var(--bg-color);
+    background-image: url(https://ontake.dev/assets/images/bg-v1-dithered-3levels-colored-big.png);
+    text-align: center;
+    background-position: center;
+    background-repeat: repeat-y;
+}
+
+a {
+    color: var(--text-color-accent);
+    text-decoration: none;
+    font-size: 16px;
+}
+
+span {
+    text-wrap: nowrap;
+}
+
+/* scrollbar */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: var(--bg-sec-color); border-radius: 4px; }
+*::-webkit-scrollbar-thumb {
+    background: var(--text-color-accent);
+    border-radius: 4px;
+    border: 1px solid var(--bg-sec-color);
+}
+*::-webkit-scrollbar-corner { background: var(--bg-sec-color); }
+
+/* search page */
+#form { margin: 24px 0 8px; }
+
+input, button {
+    font-family: "Cozette", "DotGothic16", sans-serif;
+    font-size: 16px;
+    color: var(--text-color);
+    background: transparent;
+    border: 1px solid var(--bg-sec-color);
+    padding: 6px 8px;
+}
+input:focus { outline: 1px solid var(--text-color-accent); }
+#q { width: min(420px, 60vw); }
+button { cursor: pointer; }
+button:hover { background: var(--text-color); color: var(--bg-color); }
+
+#kinds { margin: 8px 0; }
+#kinds a { margin: 0 8px; padding: 2px 4px; }
+#kinds a[aria-current] { border-bottom: 2px dashed var(--text-color-accent); }
+
+#status { min-height: 1.5em; margin-bottom: 8px; }
+
+#results {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+section[data-page] + section[data-page] {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px dashed var(--text-color-accent);
+}
+
+.result {
+    margin: 8px 0;
+    padding: 8px;
+    border: 1px solid var(--bg-sec-color);
+    background: rgba(255, 255, 255, 0.7);
+}
+.result span { text-wrap: wrap; }
+.result cite {
+    display: block;
+    font-style: normal;
+    font-size: 12px;
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+.result p { margin: 4px 0 0; }
+.result img[width="16"] { vertical-align: middle; image-rendering: pixelated; }
+.result img { max-width: 100%; }
+
+/* images: grid of thumbnails */
+section:has(> figure.result) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+}
+figure.result { margin: 0; }
+figure.result img { display: block; width: 100%; }
+figcaption { font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
+
+#more { margin: 16px 0 32px; }
+
+/* source chips on each result */
+.chips { margin-top: 6px; font-size: 12px; }
+.chip {
+    display: inline-block;
+    margin: 0 4px 0 0;
+    padding: 0 6px;
+    border: 1px solid var(--bg-sec-color);
+    background: var(--bg-sec-color);
+    cursor: default;
+    animation: chipIn 0.3s ease-out;
+}
+.chip:hover { border-color: var(--text-color-accent); }
+@keyframes chipIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
+
+/* sources side pane */
+body { transition: padding-right 0.3s ease; }
+body.pane-open { padding-right: 288px; }
+
+#pane-toggle { position: fixed; top: 8px; right: 8px; z-index: 11; }
+
+#pane {
+    position: fixed;
+    top: 48px;
+    right: 8px;
+    bottom: 8px;
+    width: 264px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid var(--bg-sec-color);
+    z-index: 10;
+    transform: translateX(calc(100% + 16px));
+    visibility: hidden;
+    transition: transform 0.3s ease, visibility 0s 0.3s;
+}
+body.pane-open #pane {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.3s ease;
+}
+#pane header { display: flex; justify-content: space-between; padding: 4px 8px; background: var(--bg-sec-color); }
+#pane-list { list-style: none; margin: 0; padding: 8px; overflow-y: auto; flex: 1; }
+
+.src { margin-bottom: 10px; padding: 2px; animation: rowIn 0.3s ease-out; }
+@keyframes rowIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+.src-head { display: flex; gap: 6px; font-size: 14px; }
+.src-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.src-page { opacity: 0.7; }
+.src-ms { min-width: 9ch; text-align: right; opacity: 0.85; }
+.src-bar { height: 6px; margin-top: 3px; background: var(--bg-sec-color); }
+.src-bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--text-color-accent);
+    transition: width 0.4s ease, background-color 0.4s ease, opacity 0.4s ease;
+}
+.src[data-state="pending"] i { transition: none; opacity: 0.55; animation: pulse 0.8s ease-in-out infinite alternate; }
+@keyframes pulse { to { opacity: 0.95; } }
+.src[data-state="cached"] i { background: var(--text-color); }
+.src[data-state="failed"] i { background: #f0719a; }
+.src[data-state="failed"] .src-ms { color: #f0719a; }
+.src[data-hl] { outline: 1px dashed var(--text-color-accent); outline-offset: 2px; }
+
+@media (max-width: 899px) { body.pane-open { padding-right: 8px; } }
+@media (prefers-reduced-motion: reduce) {
+    body, #pane, .src, .chip, .src-bar i { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<form id="form">
+  <input id="q" name="q" type="search" autocomplete="off" autofocus>
+  <button>Search</button>
+</form>
+
+<nav id="kinds">
+  <a href="#" data-kind="pages">Pages</a>
+  <a href="#" data-kind="videos">Videos</a>
+  <a href="#" data-kind="news">News</a>
+  <a href="#" data-kind="forums">Forums</a>
+  <a href="#" data-kind="images">Images</a>
+</nav>
+
+<div id="status"></div>
+
+<!-- One <section data-page="N"> per page is created in here. -->
+<div id="results"></div>
+
+<button id="more" type="button" hidden>More</button>
+
+<button id="pane-toggle" type="button" aria-expanded="false" aria-controls="pane">sources</button>
+<aside id="pane" aria-label="Source timings" aria-hidden="true">
+  <header><strong>Sources</strong> <span id="pane-total"></span></header>
+  <ul id="pane-list"></ul>
+</aside>
+
+<!--
+  RESULT TEMPLATES (one per kind). Edit freely, the script only needs the first element.
+    data-text="field"        -> element.textContent = result.field
+    data-attr-NAME="field"   -> element.setAttribute("NAME", result.field)
+  Fields: title url icon description score sources + anything a source put in `extra`
+  (thumbnail, duration, published, replies, width, height, ...).
+-->
+<template id="tpl-pages">
+  <article class="result">
+    <a data-attr-href="url"><img data-attr-src="icon" alt="" width="16" height="16"> <span data-text="title"></span></a>
+    <cite data-text="url"></cite>
+    <p data-text="description"></p>
+    <div class="chips" data-list="sources"></div>
+  </article>
+</template>
+
+<template id="tpl-videos">
+  <article class="result">
+    <a data-attr-href="url"><img data-attr-src="thumbnail" alt="" loading="lazy"></a>
+    <a data-attr-href="url"><span data-text="title"></span></a>
+    <span data-text="duration"></span>
+    <p data-text="description"></p>
+    <div class="chips" data-list="sources"></div>
+  </article>
+</template>
+
+<template id="tpl-news">
+  <article class="result">
+    <a data-attr-href="url"><img data-attr-src="icon" alt="" width="16" height="16"> <span data-text="title"></span></a>
+    <time data-text="published"></time>
+    <p data-text="description"></p>
+    <div class="chips" data-list="sources"></div>
+  </article>
+</template>
+
+<template id="tpl-forums">
+  <article class="result">
+    <a data-attr-href="url"><img data-attr-src="icon" alt="" width="16" height="16"> <span data-text="title"></span></a>
+    <span data-text="replies"></span> replies
+    <p data-text="description"></p>
+    <div class="chips" data-list="sources"></div>
+  </article>
+</template>
+
+<template id="tpl-images">
+  <figure class="result">
+    <a data-attr-href="url"><img data-attr-src="thumbnail" data-attr-alt="title" loading="lazy"></a>
+    <figcaption data-text="title"></figcaption>
+    <div class="chips" data-list="sources"></div>
+  </figure>
+</template>
+
+<script>
+(() => {
+  const TTL = __CACHE_TTL_MS__;   // injected by the server: client cache lifetime == server cache lifetime
+  const TIMEOUT = __SOURCE_TIMEOUT_MS__;   // injected by the server: full width of a timing bar
+  const KINDS = ['pages', 'videos', 'news', 'forums', 'images'];
+  const $ = s => document.querySelector(s);
+
+  let q = '', kind = 'pages', pages = 1, epoch = 0, ws;
+  const done = new Set();     // pages fully loaded without source errors
+  const loading = new Set();  // pages waiting on the server
+  const nodes = new Map();    // url -> element
+  const data = new Map();     // page -> { url: result }
+  const stamp = new Map();    // page -> time its results started being collected
+  const rows = new Map();     // "page:source" -> { el, t0, ms, bar, done }
+  let ticking = false;
+
+  // ---- URL state: /search?q=..&kind=..&page=.. -------------------------------
+  function readUrl() {
+    const p = new URLSearchParams(location.search);
+    q = (p.get('q') || '').trim();
+    kind = KINDS.includes(p.get('kind')) ? p.get('kind') : 'pages';
+    pages = Math.max(1, parseInt(p.get('page'), 10) || 1);
+  }
+  function writeUrl(push) {
+    const p = new URLSearchParams();
+    if (q) p.set('q', q);
+    if (kind !== 'pages') p.set('kind', kind);
+    if (pages > 1) p.set('page', pages);
+    const s = p.toString();
+    history[push ? 'pushState' : 'replaceState'](null, '', '/search' + (s ? '?' + s : ''));
+  }
+
+  // ---- client-side result cache (localStorage, same TTL as the server) -------
+  const ckey = p => `s:${kind}:${q.toLowerCase().split(/\s+/).join(' ')}:${p}`;
+  function cget(p) {
+    try {
+      const v = JSON.parse(localStorage.getItem(ckey(p)));
+      if (v && Date.now() - v.t < TTL) return v;
+      localStorage.removeItem(ckey(p));
+    } catch {}
+    return null;
+  }
+  function cput(p) {
+    try {
+      localStorage.setItem(ckey(p), JSON.stringify({
+        t: stamp.get(p), complete: done.has(p), results: Object.values(data.get(p) || {})
+      }));
+    } catch {}
+  }
+
+  // ---- rendering ------------------------------------------------------------
+  const section = p => $(`#results > [data-page="${p}"]`);
+  function addSection(p) {
+    const s = document.createElement('section');
+    s.dataset.page = p;
+    $('#results').append(s);
+  }
+
+  function fill(root, r) {
+    for (const el of [root, ...root.querySelectorAll('*')]) {
+      if (el.dataset.text) el.textContent = r[el.dataset.text] ?? '';
+      if (el.dataset.list) {   // data-list="sources": one chip per value, only new ones are added (so they can animate in)
+        const have = new Set([...el.children].map(c => c.textContent));
+        for (const v of [].concat(r[el.dataset.list] ?? [])) {
+          if (have.has(String(v))) continue;
+          const c = document.createElement('span');
+          c.className = 'chip'; c.textContent = v;
+          el.append(c);
+        }
+      }
+      for (const a of [...el.attributes]) {
+        if (a.name.startsWith('data-attr-') && r[a.value] != null) el.setAttribute(a.name.slice(10), r[a.value]);
+      }
+    }
+  }
+
+  // Insert (or update + re-position) a result inside its page section, sorted by score desc.
+  function insert(p, r) {
+    const pageData = data.get(p);
+    if (!pageData) return;
+    pageData[r.url] = r;
+    let el = nodes.get(r.url);
+    if (!el) {
+      const tpl = $('#tpl-' + kind) || $('#tpl-pages');
+      el = tpl.content.firstElementChild.cloneNode(true);
+      nodes.set(r.url, el);
+    }
+    fill(el, r);
+    el.dataset.score = r.score;
+    const sec = el.parentNode || section(p);
+    if (!sec) return;
+    const before = [...sec.children].find(c => c !== el && parseFloat(c.dataset.score) < r.score);
+    sec.insertBefore(el, before || null);
+  }
+
+  // New results fade in; existing ones slide to their new position (FLIP).
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  function animated(fn) {
+    if (reduce.matches) return fn();
+    const before = new Map();
+    for (const el of nodes.values()) before.set(el, el.getBoundingClientRect().top);
+    fn();
+    const vh = innerHeight;
+    for (const el of nodes.values()) {
+      const r = el.getBoundingClientRect();
+      const old = before.get(el);
+      if (old === undefined) {
+        el.animate(
+          [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }],
+          { duration: 350, easing: 'ease-out' }
+        );
+        continue;
+      }
+      const dy = old - r.top;
+      if (Math.abs(dy) < 1 || (old > vh && r.top > vh) || (old < 0 && r.bottom < 0)) continue;
+      el.animate(
+        [{ transform: `translateY(${dy}px)` }, { transform: 'none' }],
+        { duration: 350, easing: 'ease' }
+      );
+    }
+  }
+
+  // ---- sources pane ---------------------------------------------------------
+  const fmt = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + ' s' : Math.round(ms) + ' ms';
+
+  function paneTotals() {
+    const all = [...rows.values()];
+    $('#pane-total').textContent = all.length ? `${all.filter(r => r.done).length}/${all.length}` : '';
+  }
+
+  function paneStart(page, source) {
+    const key = page + ':' + source;
+    if (rows.has(key)) return rows.get(key);
+    const el = document.createElement('li');
+    el.className = 'src'; el.dataset.state = 'pending'; el.dataset.source = source;
+    el.innerHTML = '<div class="src-head"><span class="src-name"></span><span class="src-page"></span>' +
+                   '<span class="src-ms">0 ms</span></div><div class="src-bar"><i></i></div>';
+    el.querySelector('.src-name').textContent = source;
+    el.querySelector('.src-page').textContent = 'p' + page;
+    $('#pane-list').append(el);
+    const row = { el, t0: performance.now(), ms: el.querySelector('.src-ms'), bar: el.querySelector('i'), done: false };
+    rows.set(key, row);
+    paneTotals(); tick();
+    return row;
+  }
+
+  function paneDone(page, source, { ok, cached, ms, error }) {
+    const row = paneStart(page, source);
+    row.done = true;
+    row.el.dataset.state = !ok ? 'failed' : cached ? 'cached' : 'ok';
+    row.ms.textContent = !ok ? 'failed ' + fmt(ms) : (cached ? 'cached ' : '') + fmt(ms);
+    if (error) row.el.title = error;
+    row.bar.style.width = Math.max(2, Math.min(100, ms / TIMEOUT * 100)) + '%';   // CSS transition eases it from the live width
+    paneTotals();
+  }
+
+  // Live timers for sources that haven't answered yet.
+  function tick() {
+    if (ticking) return;
+    ticking = true;
+    const step = () => {
+      const now = performance.now();
+      let live = false;
+      for (const r of rows.values()) {
+        if (r.done) continue;
+        live = true;
+        const e = now - r.t0;
+        r.ms.textContent = fmt(e);
+        r.bar.style.width = Math.min(100, e / TIMEOUT * 100) + '%';
+      }
+      if (live) requestAnimationFrame(step); else ticking = false;
+    };
+    requestAnimationFrame(step);
+  }
+
+  function setPane(open) {
+    document.body.classList.toggle('pane-open', open);
+    $('#pane').setAttribute('aria-hidden', String(!open));
+    $('#pane-toggle').setAttribute('aria-expanded', String(open));
+    $('#pane-toggle').textContent = open ? 'hide sources' : 'sources';
+    try { localStorage.setItem('pane', open ? '1' : '0'); } catch {}
+  }
+
+  function status() {
+    $('#status').textContent = !q ? '' : loading.size ? 'Searching\u2026' : nodes.size ? '' : 'No results';
+  }
+
+  // ---- loading --------------------------------------------------------------
+  function request(p) {
+    loading.add(p);
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'search', epoch, q, kind, from: p, to: p }));
+  }
+
+  function load(p) {
+    data.set(p, {});
+    const c = cget(p);
+    stamp.set(p, c ? c.t : Date.now());
+    if (c) c.results.forEach(r => insert(p, r));
+    if (c && c.complete) {                            // fully cached: no network at all
+      done.add(p);
+      paneStart(p, 'browser'); paneDone(p, 'browser', { ok: true, cached: true, ms: 0 });
+      return;
+    }
+    request(p);
+  }
+
+  function start() {
+    epoch++;
+    done.clear(); loading.clear(); nodes.clear(); data.clear(); stamp.clear();
+    rows.clear(); $('#pane-list').replaceChildren(); paneTotals();
+    $('#results').replaceChildren();
+    $('#q').value = q;
+    document.title = q ? q + ' - Search' : 'Search';
+    document.querySelectorAll('#kinds [data-kind]').forEach(a => a.toggleAttribute('aria-current', a.dataset.kind === kind));
+    $('#more').hidden = !q;
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'reset' }));
+    if (q) for (let p = 1; p <= pages; p++) { addSection(p); load(p); }
+    status();
+  }
+
+  function handle(m) {
+    if (m.epoch !== epoch) return;                 // stale message from a previous query
+    if (m.type === 'results') {
+      animated(() => m.results.forEach(r => insert(m.page, r)));
+      cput(m.page);
+    } else if (m.type === 'started') {
+      m.sources.forEach(s => paneStart(m.page, s));
+    } else if (m.type === 'source_done') {
+      paneDone(m.page, m.source, m);
+      console.debug(`[${m.source}] page ${m.page}: ${m.ok ? 'ok' : 'failed: ' + m.error} ${m.ms}ms${m.cached ? ' (cached)' : ''}`);
+    } else if (m.type === 'page_done') {
+      loading.delete(m.page);
+      if (!m.errors) done.add(m.page);
+      cput(m.page);
+      status();
+    }
+  }
+
+  function connect() {
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'reset' }));
+      for (let p = 1; p <= pages; p++) if (data.has(p) && !done.has(p)) request(p);
+    };
+    ws.onmessage = e => handle(JSON.parse(e.data));
+    ws.onclose = () => setTimeout(connect, 1000);
+  }
+
+  // ---- events ---------------------------------------------------------------
+  $('#form').onsubmit = e => {
+    e.preventDefault();
+    q = $('#q').value.trim(); pages = 1;
+    writeUrl(true); start();
+  };
+  $('#kinds').onclick = e => {
+    const a = e.target.closest('[data-kind]');
+    if (!a) return;
+    e.preventDefault();
+    kind = a.dataset.kind; pages = 1;
+    writeUrl(true); start();
+  };
+  $('#more').onclick = () => {
+    pages++; writeUrl(false);
+    addSection(pages); load(pages); status();
+  };
+  addEventListener('popstate', () => { readUrl(); start(); });
+
+  $('#pane-toggle').onclick = () => setPane(!document.body.classList.contains('pane-open'));
+  // hovering a source chip highlights that source's rows in the pane
+  const hl = (e, on) => {
+    const c = e.target.closest('.chip');
+    if (c) document.querySelectorAll(`#pane-list [data-source="${CSS.escape(c.textContent)}"]`).forEach(r => r.toggleAttribute('data-hl', on));
+  };
+  $('#results').addEventListener('mouseover', e => hl(e, true));
+  $('#results').addEventListener('mouseout', e => hl(e, false));
+  let saved = null; try { saved = localStorage.getItem('pane'); } catch {}
+  setPane(saved ? saved === '1' : innerWidth >= 900);
+
+  readUrl(); start(); connect();
+})();
+</script>
+</body>
+</html>
