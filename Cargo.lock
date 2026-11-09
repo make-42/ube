@@ -2216,6 +2216,7 @@ dependencies = [
  "fastrand",
  "futures-util",
  "moka",
+ "rand 0.9.5",
  "reqwest",
  "scraper",
  "serde",

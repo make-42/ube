@@ -9,6 +9,7 @@ axum = { version = "0.8", features = ["ws"] }
 fastrand = "2"
 futures-util = "0.3"
 moka = { version = "0.12", features = ["future"] }
+rand = "0.9"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip"] }
 scraper = "0.23"
 serde = { version = "1", features = ["derive"] }
