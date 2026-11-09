@@ -1,5 +1,5 @@
 [package]
-name = "metasearch"
+name = "ube"
 version = "0.1.0"
 edition = "2021"
 
@@ -18,3 +18,5 @@ tower-http = { version = "0.6", features = ["compression-gzip"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 url = "2"
+wreq = "0.16.3"
+wreq-util = "0.2.0"
