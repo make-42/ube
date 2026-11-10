@@ -4,7 +4,9 @@ pub fn sources() -> Vec<Source> {
     vec![
         Source::new("google", google::google_pages),
         Source::new("duckduckgo", duckduckgo::duckduckgo_pages),
-        Source::new("dockerhub", dockerhub::dockerhub_pages),
+        // Weight < 1: web results outrank Docker Hub at equal rank. Override at runtime with
+        // SOURCE_WEIGHTS="dockerhub=1.5" (or any `name=weight` list).
+        Source::new("dockerhub", dockerhub::dockerhub_pages).weight(0.3),
         // Same source, other region/language (see GoogleConfig in google.rs):
         // Source::new("google-fr", |q, p| {
         //     google::google_with(google::GoogleConfig { hl: "fr".into(), lr: "lang_fr".into(), ..Default::default() }, q, p)

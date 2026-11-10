@@ -29,7 +29,14 @@ fn url_key(u: &str) -> String {
 
 /// Merge one source's list into the session. Returns the results to send:
 /// new URLs as-is, already-seen URLs with their score summed.
-fn merge(seen: &Seen, page: u32, source: &'static str, list: &[SearchResult]) -> Vec<SearchResult> {
+/// Every score is multiplied by the source's `weight` first.
+fn merge(
+    seen: &Seen,
+    page: u32,
+    source: &'static str,
+    weight: f64,
+    list: &[SearchResult],
+) -> Vec<SearchResult> {
     let mut seen = seen.lock().unwrap();
     let mut out = Vec::new();
     for r in list {
@@ -39,15 +46,13 @@ fn merge(seen: &Seen, page: u32, source: &'static str, list: &[SearchResult]) ->
                 if *p != page || existing.sources.iter().any(|s| s == source) {
                     continue; // other page already owns it, or this source already counted
                 }
-                existing.score += r.score; // <- your scoring/merging logic goes here
+                existing.score += weighted(r.score, weight); // <- your scoring/merging logic goes here
                 existing.sources.push(source.to_string());
                 out.push(existing.clone());
             }
             None => {
                 let mut r = r.clone();
-                if !r.score.is_finite() {
-                    r.score = 0.0;
-                }
+                r.score = weighted(r.score, weight);
                 r.sources = vec![source.to_string()];
                 seen.insert(key, (page, r.clone()));
                 out.push(r);
@@ -55,6 +60,11 @@ fn merge(seen: &Seen, page: u32, source: &'static str, list: &[SearchResult]) ->
         }
     }
     out
+}
+
+fn weighted(score: f64, weight: f64) -> f64 {
+    let s = score * weight;
+    if s.is_finite() { s } else { 0.0 }
 }
 
 async fn fetch(
@@ -122,16 +132,17 @@ pub async fn run_search(
             set.spawn(async move {
                 let t = Instant::now();
                 let (res, cached) = fetch(&state, &src, kind, &q, page).await;
-                (page, src.name, res, cached, t.elapsed().as_millis() as u64)
+                let weight = state.cfg.weights.get(src.name).copied().unwrap_or(src.weight);
+                (page, src.name, weight, res, cached, t.elapsed().as_millis() as u64)
             });
         }
     }
 
     // Every source runs independently; results are forwarded the moment each one lands.
     while let Some(joined) = set.join_next().await {
-        let Ok((page, source, res, cached, ms)) = joined else { continue };
+        let Ok((page, source, weight, res, cached, ms)) = joined else { continue };
         let (ok, error, batch) = match res {
-            Ok(list) => (true, None, merge(&seen, page, source, &list)),
+            Ok(list) => (true, None, merge(&seen, page, source, weight, &list)),
             Err(e) => (false, Some(e), Vec::new()),
         };
         if !batch.is_empty()
@@ -157,5 +168,42 @@ pub async fn run_search(
         if left == 0 && out.send(ServerMsg::PageDone { epoch, page, errors }).await.is_err() {
             return;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn seen() -> Seen {
+        Arc::new(Mutex::new(HashMap::new()))
+    }
+    fn r(url: &str, score: f64) -> SearchResult {
+        SearchResult::new("t", url, "d", score)
+    }
+
+    #[test]
+    fn weight_scales_scores_so_the_heavier_source_ranks_first() {
+        let s = seen();
+        let ddg = merge(&s, 1, "duckduckgo", 1.0, &[r("https://a.com", 1.0)]);
+        let hub = merge(&s, 1, "dockerhub", 0.3, &[r("https://hub/x", 1.0)]);
+        assert!((ddg[0].score - 1.0).abs() < 1e-9);
+        assert!((hub[0].score - 0.3).abs() < 1e-9);
+    }
+
+    #[test]
+    fn weighted_scores_sum_when_sources_share_a_url() {
+        let s = seen();
+        merge(&s, 1, "duckduckgo", 2.0, &[r("https://a.com", 0.5)]);
+        let merged = merge(&s, 1, "dockerhub", 0.3, &[r("https://a.com/", 1.0)]);
+        assert!((merged[0].score - (1.0 + 0.3)).abs() < 1e-9);
+        assert_eq!(merged[0].sources, vec!["duckduckgo", "dockerhub"]);
+    }
+
+    #[test]
+    fn zero_weight_and_non_finite_scores_are_harmless() {
+        let s = seen();
+        let out = merge(&s, 1, "x", 0.0, &[r("https://a.com", 1.0), r("https://b.com", f64::NAN)]);
+        assert!(out.iter().all(|r| r.score == 0.0));
     }
 }

@@ -17,6 +17,8 @@ pub struct Config {
     pub max_pages: u32,
     pub cache_capacity: u64,
     pub page_max_age: u64,
+    /// Runtime weight overrides from `SOURCE_WEIGHTS="duckduckgo=2,dockerhub=0.3"`.
+    pub weights: HashMap<String, f64>,
 }
 
 fn env<T: FromStr>(key: &str, default: T) -> T {
@@ -32,8 +34,24 @@ impl Config {
             max_pages: env("MAX_PAGES", 10),
             cache_capacity: env("CACHE_MAX_ENTRIES", 10_000),
             page_max_age: env("PAGE_MAX_AGE_SECS", 86_400),
+            weights: parse_weights(&env("SOURCE_WEIGHTS", String::new())),
         }
     }
+}
+
+/// Parse `"name=weight,name=weight"`. Entries that are malformed, negative or
+/// not finite are skipped with a warning.
+pub fn parse_weights(s: &str) -> HashMap<String, f64> {
+    let mut out = HashMap::new();
+    for part in s.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+        match part.split_once('=').map(|(k, v)| (k.trim(), v.trim().parse::<f64>())) {
+            Some((k, Ok(w))) if !k.is_empty() && w.is_finite() && w >= 0.0 => {
+                out.insert(k.to_string(), w);
+            }
+            _ => tracing::warn!("SOURCE_WEIGHTS: ignoring {part:?} (expected name=non-negative-number)"),
+        }
+    }
+    out
 }
 
 pub struct Page {
@@ -71,5 +89,19 @@ impl AppState {
             .time_to_live(cfg.cache_ttl)
             .build();
         Self { sources: sources::registry(), cache, page, cfg }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_weights;
+
+    #[test]
+    fn parses_weights_and_skips_bad_entries() {
+        let w = parse_weights(" duckduckgo = 2 ,dockerhub=0.3, bad, x=-1, y=nan, =3, z=abc ,");
+        assert_eq!(w.len(), 2);
+        assert_eq!(w["duckduckgo"], 2.0);
+        assert_eq!(w["dockerhub"], 0.3);
+        assert!(parse_weights("").is_empty());
     }
 }

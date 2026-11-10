@@ -19,6 +19,9 @@ pub type FetchFn =
 pub struct Source {
     pub name: &'static str,
     pub fetch: FetchFn,
+    /// Multiplies every score this source contributes (default 1.0). Overridable
+    /// at runtime with `SOURCE_WEIGHTS="name=weight,..."`, see `Config`.
+    pub weight: f64,
 }
 
 impl Source {
@@ -27,7 +30,13 @@ impl Source {
         F: Fn(String, u32) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = anyhow::Result<Vec<SearchResult>>> + Send + 'static,
     {
-        Self { name, fetch: Arc::new(move |q, p| Box::pin(f(q, p))) }
+        Self { name, fetch: Arc::new(move |q, p| Box::pin(f(q, p))), weight: 1.0 }
+    }
+
+    /// Rank this source's results higher (>1) or lower (<1) than the others'.
+    pub fn weight(mut self, weight: f64) -> Self {
+        self.weight = weight;
+        self
     }
 }
 
