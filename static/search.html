@@ -88,11 +88,17 @@ button:hover { background: var(--text-color); color: var(--bg-color); }
     text-align: left;
 }
 
-section[data-page] + section[data-page] {
-    margin-top: 16px;
-    padding-top: 16px;
+section[data-page] + section[data-page] { margin-top: 16px; }
+section[data-page] + section[data-page]::before {   /* separator between pages; draws in from the left */
+    content: "";
+    display: block;
+    grid-column: 1 / -1;                            /* image pages are grids: span the full row */
+    margin-bottom: 16px;
     border-top: 2px dashed var(--text-color-accent);
+    transform-origin: left;
+    animation: sepIn 0.35s ease-out;
 }
+@keyframes sepIn { from { opacity: 0; transform: scaleX(0); } to { opacity: 1; transform: none; } }
 
 .result {
     margin: 8px 0;
@@ -111,6 +117,20 @@ section[data-page] + section[data-page] {
 .result p { margin: 4px 0 0; }
 .result img[width="16"] { vertical-align: middle; image-rendering: pixelated; }
 .result img { max-width: 100%; }
+
+/* videos: thumbnail on top, then title, duration, description (each on its own line) */
+.result.video .thumb {
+    display: block;
+    width: min(100%, 320px);
+    aspect-ratio: 16 / 9;
+    margin-bottom: 6px;
+    background: var(--bg-sec-color);
+}
+.result.video .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.result.video .thumb:has(img:not([src])) { display: none; }   /* no thumbnail: no empty box */
+.result.video .title { display: block; }
+.result.video .duration { display: block; margin-top: 2px; font-size: 12px; opacity: 0.7; }
+.result.video .duration:empty { display: none; }
 
 /* images: grid of thumbnails */
 section:has(> figure.result) {
@@ -142,7 +162,15 @@ figcaption { font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
 body { transition: padding-right 0.3s ease; }
 body.pane-open { padding-right: 288px; }
 
-#pane-toggle { position: fixed; top: 8px; right: 8px; z-index: 11; }
+#pane-toggle {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 11;
+    box-sizing: border-box;
+    overflow: hidden;
+    white-space: nowrap;
+}
 
 #pane {
     position: fixed;
@@ -192,7 +220,7 @@ body.pane-open #pane {
 
 @media (max-width: 899px) { body.pane-open { padding-right: 8px; } }
 @media (prefers-reduced-motion: reduce) {
-    body, #pane, .src, .chip, .src-bar i { transition: none !important; animation: none !important; }
+    body, #pane, .src, .chip, .src-bar i, section[data-page]::before { transition: none !important; animation: none !important; }
 }
 </style>
 </head>
@@ -218,7 +246,7 @@ body.pane-open #pane {
 
 <button id="more" type="button" hidden>More</button>
 
-<button id="pane-toggle" type="button" aria-expanded="false" aria-controls="pane">sources</button>
+<button id="pane-toggle" type="button" aria-expanded="false" aria-controls="pane"><span id="pane-toggle-label">sources</span></button>
 <aside id="pane" aria-label="Source timings" aria-hidden="true">
   <header><strong>Sources</strong> <span id="pane-total"></span></header>
   <ul id="pane-list"></ul>
@@ -241,10 +269,10 @@ body.pane-open #pane {
 </template>
 
 <template id="tpl-videos">
-  <article class="result">
-    <a data-attr-href="url"><img data-attr-src="thumbnail" alt="" loading="lazy"></a>
-    <a data-attr-href="url"><span data-text="title"></span></a>
-    <span data-text="duration"></span>
+  <article class="result video">
+    <a class="thumb" data-attr-href="url"><img data-attr-src="thumbnail" alt="" loading="lazy"></a>
+    <a class="title" data-attr-href="url"><span data-text="title"></span></a>
+    <span class="duration" data-text="duration"></span>
     <p data-text="description"></p>
     <div class="chips" data-list="sources"></div>
   </article>
@@ -375,11 +403,13 @@ body.pane-open #pane {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   function animated(fn) {
     if (reduce.matches) return fn();
+    const more = $('#more');
+    const tracked = () => more.hidden ? [...nodes.values()] : [...nodes.values(), more];   // the More button rides along
     const before = new Map();
-    for (const el of nodes.values()) before.set(el, el.getBoundingClientRect().top);
+    for (const el of tracked()) before.set(el, el.getBoundingClientRect().top);
     fn();
     const vh = innerHeight;
-    for (const el of nodes.values()) {
+    for (const el of tracked()) {
       const r = el.getBoundingClientRect();
       const old = before.get(el);
       if (old === undefined) {
@@ -455,7 +485,15 @@ body.pane-open #pane {
     document.body.classList.toggle('pane-open', open);
     $('#pane').setAttribute('aria-hidden', String(!open));
     $('#pane-toggle').setAttribute('aria-expanded', String(open));
-    $('#pane-toggle').textContent = open ? 'hide sources' : 'sources';
+    const btn = $('#pane-toggle'), label = $('#pane-toggle-label');
+    const w0 = btn.getBoundingClientRect().width;
+    label.textContent = open ? 'hide sources' : 'sources';
+    const w1 = btn.getBoundingClientRect().width;
+    if (setPane.ran && !reduce.matches && Math.abs(w1 - w0) > 0.5) {   // glide between the two widths (same timing as the pane)
+      btn.animate([{ width: w0 + 'px' }, { width: w1 + 'px' }], { duration: 300, easing: 'ease' });
+      label.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease' });
+    }
+    setPane.ran = true;
     try { localStorage.setItem('pane', open ? '1' : '0'); } catch {}
   }
 
@@ -539,7 +577,8 @@ body.pane-open #pane {
   };
   $('#more').onclick = () => {
     pages++; writeUrl(false);
-    addSection(pages); load(pages); status();
+    animated(() => addSection(pages));   // separator draws in, More slides down
+    load(pages); status();
   };
   addEventListener('popstate', () => { readUrl(); start(); });
 
