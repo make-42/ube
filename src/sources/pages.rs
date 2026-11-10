@@ -1,9 +1,10 @@
-use super::{engines::google, engines::duckduckgo, Source};
+use super::{engines::dockerhub, engines::google, engines::duckduckgo, Source};
 
 pub fn sources() -> Vec<Source> {
     vec![
         Source::new("google", google::google_pages),
         Source::new("duckduckgo", duckduckgo::duckduckgo_pages),
+        Source::new("dockerhub", dockerhub::dockerhub_pages),
         // Same source, other region/language (see GoogleConfig in google.rs):
         // Source::new("google-fr", |q, p| {
         //     google::google_with(google::GoogleConfig { hl: "fr".into(), lr: "lang_fr".into(), ..Default::default() }, q, p)
