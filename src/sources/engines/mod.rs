@@ -7,3 +7,4 @@ pub mod bing_videos;
 pub mod dockerhub;
 pub mod google;
 pub mod duckduckgo;
+pub mod stackexchange;
