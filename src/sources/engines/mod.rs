@@ -9,3 +9,4 @@ pub mod google;
 pub mod duckduckgo;
 pub mod stackexchange;
 pub mod mdn;
+pub mod github;

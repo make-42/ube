@@ -34,7 +34,7 @@ Doing these once makes dozens of rows below cheap. Each is its own change.
 
 ## Prioritized engines (sorted by score; 86 rows: P0=13, P1=17, P2=21, P3=25, P4=10)
 | 3 | P0 | 21 | **wikipedia**<br><sub>wikipedia</sub> | web | pages | json-api | **done** | on | NOT a search: REST `/api/rest_v1/page/summary/<Title>` returns ONE page. Lowercase queries are title-cased first. 404 and 400 `title-invalid-characters` = empty Ok. Wikimedia policy: send an identifying User-Agent with a contact. Per-language host `<lang>.wikipedia.org`. |
-| 4 | P0 | 19 | **github**<br><sub>github</sub> | it | pages | json-api | S | on | `api.github.com/search/repositories?sort=stars&order=desc&q`, header `Accept: application/vnd.github.preview.text-match+json`. Anonymous limit is 10 requests/minute: treat 403/429 as Err. Read an optional `GITHUB_TOKEN` env var; never hardcode one. ("github code" is inactive upstream because it needs a token.) |
+| 4 | P0 | 19 | **github**<br><sub>github</sub> | it | pages | json-api | **done** | on | `api.github.com/search/repositories?sort=stars&order=desc&q`, header `Accept: application/vnd.github.preview.text-match+json`. Anonymous limit is 10 requests/minute: treat 403/429 as Err. Read an optional `GITHUB_TOKEN` env var; never hardcode one. ("github code" is inactive upstream because it needs a token.) |
 Columns: **cat** = SearXNG category; **ube kind** = where it goes today (IT, science, files and music engines go to `pages` with a low `.weight()` unless the human approves a new kind, see `ENGINES.md`); **types** = see the engine-type section of `ENGINES.md`; **def.** = enabled by default upstream.
 
 | # | Tier | Score | Engine (SearXNG) | cat | ube kind | types | effort | def. | Particularities |
