@@ -4,6 +4,7 @@
 //! particularly those scraping HTML where `<noscript>` tags wrap results or where
 //! date conversion is needed.
 //!
+//! See [`cache`] for token caching for stateful pagination (e.g., DuckDuckGo, Vimeo, Pinterest).
 //! See [`util`] for:
 //! - `strip_noscript`: removes `<noscript>` wrapper tags used by some sites (e.g., Bing)
 //! - `html_to_text`: extracts plain text from HTML
@@ -11,4 +12,5 @@
 //! - `abs_url`: resolves relative URLs against a base URL
 //! - `first_nonempty`: returns the first non-empty string from an iterator
 
+pub mod cache;
 pub mod util;
