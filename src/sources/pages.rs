@@ -1,4 +1,9 @@
-use super::{engines::dockerhub, engines::google, engines::duckduckgo, engines::mdn, Source};
+use super::engines::wikipedia;
+use super::engines::google;
+use super::engines::duckduckgo;
+use super::engines::dockerhub;
+use super::engines::mdn;
+use crate::sources::Source;
 
 pub fn sources() -> Vec<Source> {
     vec![
@@ -18,5 +23,6 @@ pub fn sources() -> Vec<Source> {
         //
         // MDN Web Docs (Generic JSON engine):
         Source::new("mdn", mdn::mdn_pages),
+        Source::new("wikipedia", wikipedia::wikipedia_pages),
     ]
 }

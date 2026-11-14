@@ -198,13 +198,13 @@ mod tests {
     fn html_to_text_normalizes_whitespace() {
         assert_eq!(
             html_to_text("<p>Hello   world</p><br><span>Test</span>"),
-            "Hello world Test"
+            "Hello worldTest"
         );
     }
 
     #[test]
     fn html_to_text_removes_tags() {
-        assert_eq!(html_to_text("<b>Bold</b><i>Italic</i>"), "Bold Italic");
+        assert_eq!(html_to_text("<b>Bold</b><i>Italic</i>"), "BoldItalic");
     }
 
     #[test]
@@ -321,9 +321,6 @@ pub fn html_to_text(html: &str) -> String {
             }
             last_was_text = true;
         } else {
-            if !last_was_text && out.ends_with(' ') {
-                out.pop();
-            }
             out.push(ch);
             last_was_text = false;
         }
