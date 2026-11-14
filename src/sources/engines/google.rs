@@ -14,11 +14,8 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         OnceLock,
     },
-    time::Duration,
 };
 use url::Url;
-use wreq::Client;
-use wreq_util::{Emulation, Platform, Profile};
 
 // ---- Nokia User-Agents -------------------------------------------------------
 
@@ -74,26 +71,13 @@ fn selectors() -> &'static Selectors {
     })
 }
 
-// ---- HTTP client -------------------------------------------------------------
 
-fn client() -> &'static Client {
-    static C: OnceLock<Client> = OnceLock::new();
 
-    C.get_or_init(|| {
-        let emulation = Emulation::builder()
-            .profile(Profile::Chrome100)
-            .platform(Platform::Android)
-            .build();
-
-        Client::builder()
-            .timeout(Duration::from_secs(15))
-            .emulation(emulation)
-            .build()
-            .expect("failed to build wreq client")
-    })
+/// Shared wreq client with Chrome 100 Android emulation.
+/// Re-exported from `crate::sources::foundations::wreq::client()`.
+fn client() -> &'static wreq::Client {
+    crate::sources::foundations::wreq::client()
 }
-
-
 // ---- Public search functions ------------------------------------------------
 
 /// Default entry point:
