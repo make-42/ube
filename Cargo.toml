@@ -21,3 +21,4 @@ tracing-subscriber = "0.3"
 url = "2"
 wreq = "0.16.3"
 wreq-util = "0.2.0"
+quick-xml = { version = "0.37", features = ["serialize"] }

@@ -13,3 +13,4 @@ pub mod cache;
 pub mod google;
 pub mod json_engine;
 pub mod util;
+pub mod xml;
