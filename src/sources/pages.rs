@@ -1,4 +1,4 @@
-use super::{engines::dockerhub, engines::google, engines::duckduckgo, Source};
+use super::{engines::dockerhub, engines::google, engines::duckduckgo, engines::mdn, Source};
 
 pub fn sources() -> Vec<Source> {
     vec![
@@ -15,5 +15,8 @@ pub fn sources() -> Vec<Source> {
         // Placeholder sources for testing the streaming UI:
         // Source::new("pages-fast", |q, p| super::fake(crate::types::Kind::Pages, "pages-fast", q, p, 150)),
         // Source::new("pages-slow", |q, p| super::fake(crate::types::Kind::Pages, "pages-slow", q, p, 6000)),
+        //
+        // MDN Web Docs (Generic JSON engine):
+        Source::new("mdn", mdn::mdn_pages),
     ]
 }

@@ -8,3 +8,4 @@ pub mod dockerhub;
 pub mod google;
 pub mod duckduckgo;
 pub mod stackexchange;
+pub mod mdn;
