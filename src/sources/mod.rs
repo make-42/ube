@@ -7,6 +7,7 @@ pub mod images;
 pub mod news;
 pub mod pages;
 pub mod videos;
+pub mod foundations;
 
 use crate::types::{Kind, SearchResult};
 use futures_util::future::BoxFuture;

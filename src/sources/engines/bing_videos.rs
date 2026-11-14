@@ -9,6 +9,7 @@
 
 use crate::types::SearchResult;
 
+use crate::sources::foundations::util::strip_noscript;
 use anyhow::{bail, Context, Result};
 use scraper::{node::Node, ElementRef, Html, Selector};
 use serde::Deserialize;
@@ -211,28 +212,6 @@ fn container<'a>(el: ElementRef<'a>) -> ElementRef<'a> {
 /// that as normal markup, but html5ever (scraper) treats it as raw text, so
 /// the videos would never appear in the DOM. Dropping the wrapper tags makes
 /// their contents ordinary elements.
-fn strip_noscript(body: &str) -> String {
-    let mut out = String::with_capacity(body.len());
-    let mut rest = body;
-    while let Some(i) = rest.find('<') {
-        out.push_str(&rest[..i]);
-        rest = &rest[i..];
-        let end = rest.find('>').map_or(rest.len(), |e| e + 1);
-        let tag = &rest[..end];
-        let name = tag.trim_start_matches('<').trim_start_matches('/');
-        let is_noscript = name.len() >= 8
-            && name.is_char_boundary(8)
-            && name[..8].eq_ignore_ascii_case("noscript")
-            && !name[8..].starts_with(|c: char| c.is_ascii_alphanumeric());
-        if !is_noscript {
-            out.push_str(tag);
-        }
-        rest = &rest[end..];
-    }
-    out.push_str(rest);
-    out
-}
-
 /// Parse an `asyncv2` fragment. Pure function, no network I/O.
 ///
 /// Page 1 carries the metadata in `vrhm` attributes, but continuation pages
@@ -428,6 +407,7 @@ fn around(body: &str, needle: &str, width: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::sources::foundations::util::strip_noscript;
 
     // `vrhm` is HTML-escaped JSON, exactly as Bing serves it.
     const FIXTURE: &str = r#"

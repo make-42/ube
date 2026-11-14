@@ -22,7 +22,7 @@ Doing these once makes dozens of rows below cheap. Each is its own patch.
 
 | # | Foundation | Why | Unlocks |
 |---|---|---|---|
-| F1 | `src/sources/util.rs`: `strip_noscript`, `html_to_text`, `epoch_to_rfc3339` (no new dependency), `abs_url`, `first_nonempty` | `strip_noscript` currently lives in `bing_videos.rs`; every Bing engine needs it; news engines need ISO dates and ube has no date crate | all Bing engines, every news engine |
+| F1 | `src/sources/foundations/util.rs`: `strip_noscript`, `html_to_text`, `epoch_to_rfc3339` (no new dependency), `abs_url`, `first_nonempty` | `strip_noscript` moved from `bing_videos.rs` to a shared foundation module; all Bing engines and news engines can now use these utilities | done | all Bing engines, every news engine |
 | F2 | Shared token cache helper (a `moka` cache keyed by `(engine, key)` with TTL) | vqd, JWT, client_id, secret keys, continuation tokens all need the same pattern (`duckduckgo.rs` already does it ad hoc) | duckduckgo extra, vimeo, soundcloud, pexels, youtube, pinterest, semantic scholar |
 | F3 | `GoogleConfig.tbm` (or `google_request` helper) in `google.rs` | Google images/news/videos/scholar differ from web only by the `tbm` parameter and the response parser | google images, news, videos |
 | F4 | Generic JSON engine: `JsonEngineConfig { search_url, results_path, url_path, title_path, content_path, thumbnail_path, page_size, first_page, headers }` with slash-separated paths like SearXNG's json_engine | 8 SearXNG instances are pure config | mdn, mankier, packagist, wiby, encyclosearch, crowdview, openaire |
