@@ -11,7 +11,7 @@ Companions: [`BACKLOG.md`](BACKLOG.md) (what to port next, ranked), [`PROMPT.md`
 4. **A challenge is a wall, not a puzzle.** Anubis, captchas, DataDome and similar: do not write solvers or spoof your way through. Return `Err` with a clear message and offer the `site:` workaround through an engine that already works. (Decided for the Arch Wiki: every User-Agent got the Anubis page. See `BACKLOG.md`.)
 5. **Ask before** adding a dependency, a new `Kind`, or changing `static/search.html`.
 6. **No secrets in source.** API keys and tokens come from environment variables. Do not copy keys found in SearXNG.
-7. **One engine (or one family) per patch. Zero compiler warnings. Do not reformat or touch unrelated code.**
+7. **One engine (or one family) per change. Zero compiler warnings. Do not reformat or touch unrelated code.**
 
 ## 1. What an engine plugs into
 
@@ -543,25 +543,21 @@ Mandatory, all offline:
 
 ```sh
 git status                                  # must be clean (rule 2)
-git checkout -b feat/<engine> <base>
 # ... write src/sources/engines/<engine>.rs, register it ...
 cargo test                                  # all green, ZERO warnings
 git status                                  # only files you meant to change
 git add -A && git commit -m "feat(<engine>): <one line>"       # fix(<engine>): ... for bug fixes
-git format-patch -1 -o /tmp/out             # N patches: -N; stacked patches keep their order
-# verify: fresh checkout of the base, then
-git -c user.name=x -c user.email=x@x am /tmp/out/*.patch
 ```
 - Toolchain: `wreq` builds BoringSSL and needs `cmake`, `ninja`, `clang`, `golang`, `pkg-config`; if your `rustc` is older than the crate requires, use `cargo test --ignore-rust-version` and say so.
-- One engine/family per patch; fixes to an engine you ported earlier are separate `fix(...)` patches, numbered after it.
-- **Final message to the human**, in this order: (1) patch file name and what it stacks on; (2) what it does (endpoint, paging, extras); (3) **differences from SearXNG**; (4) **what is not verified** (live site, page 2, regions); (5) the exact probe command if you need their output; (6) decisions they must make (weight, kind, dependency). Plain prose, no marketing.
+- One engine/family per change; fixes to an engine you modified earlier are separate `fix(...)` commits, stacked after it.
+- **Final message to the human**, in this order: (1) what it does (endpoint, paging, extras); (2) **differences from SearXNG**; (3) **what is not verified** (live site, page 2, regions); (4) the exact probe command if you need their output; (5) decisions they must make (weight, kind, dependency). Plain prose, no marketing.
 
 ## 15. Definition of done
 
 - [ ] `git status` was clean at the start and shows only intended files at the end.
 - [ ] Endpoint, paging and quirks traced to the SearXNG source (or live evidence), not memory.
 - [ ] Real fixtures (page 1 and, if different, page 2) in the tests; regression tests proven to fail without their fix.
-- [ ] `cargo test` green, zero warnings; patch verified with `git am` on a clean base.
+- [ ] `cargo test` green, zero warnings.
 - [ ] Blocks and errors are `Err` with a readable message; zero-results diagnostic logged.
 - [ ] `title` non-empty, canonical URL, https thumbnails, `published`/`duration`/`replies` formats per section 3.
 - [ ] Weight chosen and registered in the right kind; no secrets in code; no new dependency/kind/UI without approval.

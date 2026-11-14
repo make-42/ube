@@ -18,7 +18,7 @@ Already ported (do not redo): `google` (pages), `duckduckgo` (pages, HTML endpoi
 
 ## Phase 0: shared foundations (do these before the long tail)
 
-Doing these once makes dozens of rows below cheap. Each is its own patch.
+Doing these once makes dozens of rows below cheap. Each is its own change.
 
 | # | Foundation | Why | Unlocks |
 |---|---|---|---|
