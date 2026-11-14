@@ -7,7 +7,9 @@
 //! Chrome 99, so Chrome 100 Android is the closest available profile.
 
 use crate::types::SearchResult;
-
+use crate::sources::foundations::google as gfound;
+use crate::sources::foundations::google::GoogleConfig as GfoundConfig;
+use crate::sources::foundations::google::build_google_url as gbuild_url;
 use anyhow::{bail, Context, Result};
 use scraper::{ElementRef, Html, Selector};
 use std::{
@@ -94,43 +96,6 @@ fn client() -> &'static Client {
     })
 }
 
-// ---- Google configuration ---------------------------------------------------
-
-/// Request parameters (equivalent to SearXNG's `get_google_info`).
-#[derive(Clone, Debug)]
-pub struct GoogleConfig {
-    /// Interface language, e.g. "en", "fr", "zh-TW".
-    pub hl: String,
-
-    /// Restrict results to a language, e.g. "lang_en".
-    /// Empty means any language.
-    pub lr: String,
-
-    /// Restrict results to a country, e.g. "countryFR".
-    pub cr: Option<String>,
-
-    /// "off" | "medium" | "high".
-    pub safe: Option<&'static str>,
-
-    /// "d" | "w" | "m" | "y" (day/week/month/year).
-    pub time_range: Option<&'static str>,
-
-    /// Extra query arguments.
-    pub extra: Vec<(String, String)>,
-}
-
-impl Default for GoogleConfig {
-    fn default() -> Self {
-        Self {
-            hl: "en".into(),
-            lr: "lang_en".into(),
-            cr: None,
-            safe: None,
-            time_range: None,
-            extra: vec![],
-        }
-    }
-}
 
 // ---- Public search functions ------------------------------------------------
 
@@ -140,59 +105,24 @@ pub async fn google_pages(
     q: String,
     page: u32,
 ) -> Result<Vec<SearchResult>> {
-    google_with(GoogleConfig::default(), q, page).await
+    google_with(gfound::GoogleConfig::default(), q, page).await
 }
 
 /// Search Google with custom configuration.
 pub async fn google_with(
-    cfg: GoogleConfig,
+    cfg: gfound::GoogleConfig,
     q: String,
     page: u32,
 ) -> Result<Vec<SearchResult>> {
-    let page = page.max(1);
-    let start = (page - 1) * 10;
+    let request_url = gfound::build_google_url(&cfg, &q, page, cfg.tbm.as_deref())?;
 
-    let mut url = Url::parse("https://www.google.com/wml/search")?;
-
-    {
-        let mut qp = url.query_pairs_mut();
-
-        qp.append_pair("q", &q);
-        qp.append_pair("sca_esv", "1");
-        qp.append_pair("hl", &cfg.hl);
-        qp.append_pair("lr", &cfg.lr);
-
-        if let Some(cr) = &cfg.cr {
-            qp.append_pair("cr", cr);
-        }
-
-        qp.append_pair("ie", "utf8");
-        qp.append_pair("oe", "utf8");
-
-        for (k, v) in &cfg.extra {
-            qp.append_pair(k, v);
-        }
-
-        if start > 0 {
-            qp.append_pair("start", &start.to_string());
-        }
-
-        if let Some(t) = cfg.time_range {
-            qp.append_pair("tbs", &format!("qdr:{t}"));
-        }
-
-        if let Some(s) = cfg.safe {
-            qp.append_pair("safe", s);
-        }
-    }
-
-    let request_url = url.to_string();
+    let request_url = request_url.to_string();
 
     // SearXNG pairs a Nokia User-Agent with Chrome Android impersonation.
     // The User-Agent is deliberately overridden here; the TLS and HTTP/2
     // fingerprint still comes from the wreq Chrome 100 Android profile.
     let resp = client()
-        .get(url.as_str())
+        .get(request_url.as_str())
         .header("user-agent", nokia_user_agent())
         .header("accept", "*/*")
         .header("cookie", "CONSENT=YES+")
