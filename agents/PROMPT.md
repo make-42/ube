@@ -99,7 +99,6 @@ Implement foundation {{F#}} ("{{FOUNDATION NAME}}"). Requirements:
 - Minimal API, documented with a short module comment and unit tests.
 - No new dependency unless I approved it in this conversation: if it needs one (XML parser, date crate), stop and ask me, naming the crate, why, and what it costs.
 - One patch, `refactor(...)` or `feat(...)`, verified with `git am` on a clean base.
-- Write the code in src/sources/engines/foundations/*
 - Modify BACKLOG.md to specify that the foundation is implemented.
 
 DELIVER
