@@ -7,9 +7,6 @@
 //! Chrome 99, so Chrome 100 Android is the closest available profile.
 
 use crate::types::SearchResult;
-use crate::sources::foundations::google as gfound;
-use crate::sources::foundations::google::GoogleConfig as GfoundConfig;
-use crate::sources::foundations::google::build_google_url as gbuild_url;
 use anyhow::{bail, Context, Result};
 use scraper::{ElementRef, Html, Selector};
 use std::{
@@ -105,16 +102,16 @@ pub async fn google_pages(
     q: String,
     page: u32,
 ) -> Result<Vec<SearchResult>> {
-    google_with(gfound::GoogleConfig::default(), q, page).await
+    google_with(crate::sources::foundations::google::GoogleConfig::default(), q, page).await
 }
 
 /// Search Google with custom configuration.
 pub async fn google_with(
-    cfg: gfound::GoogleConfig,
+    cfg: crate::sources::foundations::google::GoogleConfig,
     q: String,
     page: u32,
 ) -> Result<Vec<SearchResult>> {
-    let request_url = gfound::build_google_url(&cfg, &q, page, cfg.tbm.as_deref())?;
+    let request_url = crate::sources::foundations::google::build_google_url(&cfg, &q, page, cfg.tbm.as_deref())?;
 
     let request_url = request_url.to_string();
 
