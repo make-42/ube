@@ -109,3 +109,26 @@ Apply changes directly (do not create a patch).
 A list of the engines in BACKLOG.md that this unlocks.
 ```
 
+Prompt D: Change
+You are working in the `ube` repository (a Rust metasearch server: axum + scraper + reqwest/wreq).
+
+TASK
+Switch the Google scraper to a headless browser version as the previously used endpoint is dead and we need javascript capability to scrape the data. You should first look up the correct dependencies to use.
+
+READ FIRST, IN THIS ORDER (do not skip, do not skim)
+1. agents/ENGINES.md, entirely. Its rules override your habits.
+2. The backlog row for this engine in agents/BACKLOG.md (types, particularities, effort).
+3. The SearXNG source: `python3 agents/tools/sx_engine.py /tmp/searxng {{SEARXNG_MODULE}}`. Also read every module it lists under "SHARES CODE WITH".
+4. The reference engines: src/sources/engines/dockerhub.rs (JSON) or bing_videos.rs (HTML), and the registry file src/sources/{{KIND}}.rs.
+
+HARD RULES
+- No new dependency, no new `Kind`, no change to static/search.html without asking me first.
+- No API keys in code; env vars only.
+- Do not try to defeat Anubis, captchas, DataDome or similar. Report them as blocks.
+- Do not modify unrelated code. Do not keep code you did not write and cannot explain.
+- Do not claim it works against the live site unless you have live evidence.
+
+DELIVER
+Apply changes directly (do not create a patch).
+
+A short message: what it does (endpoint, paging, extras), differences from SearXNG, what is NOT verified, and the exact command for me to run if you need more evidence.

@@ -52,55 +52,43 @@ pub fn build_google_url(
     page: u32,
     tbm: Option<&str>,
 ) -> Result<String, url::ParseError> {
-    let mut url = Url::parse("https://www.google.com/wml/search")?;
-    let mut qp = url.query_pairs_mut();
-
-    qp.append_pair("q", q);
-    qp.append_pair("sca_esv", "1");
-    qp.append_pair("hl", &cfg.hl);
-    qp.append_pair("lr", &cfg.lr);
-    qp.append_pair("ie", "utf8");
-    qp.append_pair("oe", "utf8");
-
+    // Build query parameters as a vector of key-value pairs
+    let mut params: Vec<(String, String)> = Vec::new();
+    params.push(("q".to_string(), q.to_string()));
+    
     if let Some(cr) = &cfg.cr {
-        qp.append_pair("cr", cr);
+        params.push(("cr".to_string(), cr.to_string()));
     }
-
-    if page > 1 {
-        qp.append_pair("start", &((page - 1) * 10).to_string());
-    }
-
+    params.push(("hl".to_string(), cfg.hl.clone()));
+    params.push(("lr".to_string(), cfg.lr.clone()));
+    
     if let Some(t) = cfg.time_range {
-        qp.append_pair("tbs", &format!("qdr:{t}"));
+        params.push(("tbs".to_string(), format!("qdr:{}", t)));
     }
-
+    
     if let Some(s) = cfg.safe {
-        qp.append_pair("safe", s);
+        params.push(("safe".to_string(), s.to_string()));
     }
-
-    // Add tbm parameter if specified
+    
+    if page > 1 {
+        params.push(("start".to_string(), ((page - 1) * 10).to_string()));
+    }
+    
     if let Some(tbm) = tbm {
-
-    // Add extra parameters
+        params.push(("tbm".to_string(), tbm.to_string()));
+    }
+    
     for (k, v) in &cfg.extra {
-        qp.append_pair(k, v);
+        params.push((k.clone(), v.clone()));
     }
-        qp.append_pair("tbm", tbm);
-
-    // Add extra parameters
-    for (k, v) in &cfg.extra {
-        qp.append_pair(k, v);
-    }
-    }
-
-    // Add extra parameters
-    for (k, v) in &cfg.extra {
-        qp.append_pair(k, v);
-    }
-
-    // Drop the borrow before returning
-    drop(qp);
-    Ok(url.to_string())
+    
+    // Build URL with properly encoded query string
+    // Use simple encoding: keys and values are already strings, just join them
+    let query_string = params.into_iter()
+        .map(|(k, v)| format!("{}={}", urlencoding::encode(k.as_str()), urlencoding::encode(v.as_str())))
+        .collect::<Vec<_>>()
+        .join("&");
+    Ok(format!("https://www.google.com/search?{}", query_string))
 }
 
 /// Google configuration with optional tab type support.
@@ -192,8 +180,8 @@ mod tests {
         let cfg = GoogleConfig::default();
         let url = build_google_url(&cfg, "test query", 1, None).unwrap();
 
-        assert!(url.contains("https://www.google.com/wml/search"));
-        assert!(url.contains("q=test+query"));
+        assert!(url.contains("https://www.google.com/search"));
+        assert!(url.contains("q=test%20query"));
         assert!(url.contains("hl=en"));
         assert!(!url.contains("tbm="));
     }
